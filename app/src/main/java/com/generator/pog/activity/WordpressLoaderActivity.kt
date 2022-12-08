@@ -1,6 +1,7 @@
 package com.generator.pog.activity
 
 import android.annotation.SuppressLint
+import android.icu.util.Calendar
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -21,6 +22,7 @@ import com.generator.pog.enum.DownloadStatus
 import com.generator.pog.events.TimerEvent
 import com.generator.pog.events.UrlLoadedEvent
 import com.generator.pog.local_db.DatabaseHandler
+import com.generator.pog.model.URLData
 import com.generator.pog.model.Wordpress
 import com.generator.pog.presenter.WordpressPresenterClass
 import com.generator.pog.presenter.WordpressView
@@ -36,7 +38,7 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
     var wordpressResponse: MutableList<Wordpress.Result> = ArrayList()
     var wordpressLoadUrl: MutableList<Wordpress.Result> = ArrayList()
     var wordpressRawResponse: MutableList<Wordpress.Result> = ArrayList()
-    var urlData: MutableList<String> = ArrayList()
+    var urlData: MutableList<URLData.Details> = ArrayList()
     var db = DatabaseHandler(this)
     var factor = 0
     val calendar = CalendarData()
@@ -116,7 +118,7 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
                     page = 1
                     downloadingCon.visibility = View.GONE
                     setAppTitle()
-                    val message = "No data in ${urlData[0]}"
+                    val message = "No data in ${urlData[0].url}"
                     Snackbar.make(
                         findViewById(android.R.id.content),
                         message,
@@ -150,7 +152,7 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
         } else {
             downloadingCon.visibility = View.GONE
             setAppTitle()
-            val message = "failed to download ${urlData[0]}"
+            val message = "failed to download ${urlData[0].url}"
             Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT).show()
 
             Handler().postDelayed({
@@ -179,8 +181,16 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
     private fun prepareToDisplay() {
         downloadingCon.visibility = View.GONE
         page = 1
+        if (urlData[0].days == "0") {
+            var singleWordpress: MutableList<Wordpress.Result> = ArrayList()
+            for (i in 1..5) {
+                singleWordpress.add(Wordpress.Result("",urlData[0].url!!,"",Wordpress.Title("")))
+            }
+            wordpressResponse = wordpressData.factorWordpress(singleWordpress, urlData[0].pages.toInt(), true)
+        } else {
+            wordpressResponse = wordpressData.factorWordpress(wordpressRawResponse, urlData[0].pages.toInt(), false)
+        }
         urlData.removeAt(0)
-        wordpressResponse = wordpressData.factorWordpress(wordpressRawResponse, factor)
         totalWordpress = wordpressResponse.count() / 2
         wordpressRawResponse.clear()
         displayWordpress()
@@ -195,25 +205,35 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
             wordpressLoadUrl.add(0, wordpressResponse[0])
             wordpressResponse.removeAt(0)
             recyclerWordpressLoader.adapter!!.notifyDataSetChanged()
-//            recyclerWordpressLoader.scrollToPosition(wordpressLoadUrl.count() - 1)
-            //wordpressLoadUrl.removeAt(0)
         }
     }
 
     private fun bind() {
         setRecycler()
         urlData = db.getURL()
-        factor = db.getFactor()
-        downloadWordpress()
+        if (urlData.isEmpty()) {
+            downloadingCon.visibility = View.GONE
+            Snackbar.make(
+                findViewById(android.R.id.content),
+                "URL not available at this time",
+                Snackbar.LENGTH_SHORT
+            ).show()
+        } else {
+            downloadWordpress()
+        }
     }
 
     private fun downloadWordpress() {
         checkUrlData { item ->
             urlData = item
             resetWordpress()
-            downloadingCon.visibility = View.VISIBLE
-            downloadingUrlTxt.text = urlData[0]
-            presenter.getLatestPost("http://" + urlData[0] + "/wp-json/wp/v2/posts?orderby=date&&page=${page}&&order=desc&&after=${calendar.getLastMonth()}")
+            if(urlData[0].days == "0") {
+                prepareToDisplay()
+            } else {
+                downloadingCon.visibility = View.VISIBLE
+                downloadingUrlTxt.text = urlData[0].url
+                presenter.getLatestPost("http://" + urlData[0].url + "/wp-json/wp/v2/posts?orderby=date&&page=${page}&&order=desc&&after=${calendar.getLastMonth(urlData[0].days)}")
+            }
         }
     }
 
@@ -225,9 +245,16 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
         }
     }
 
-    private fun checkUrlData(completionHandler: (MutableList<String>) -> Unit) {
+    private fun checkUrlData(completionHandler: (MutableList<URLData.Details>) -> Unit) {
         if (urlData.isEmpty()) {
-            completionHandler.invoke(db.getURL())
+            val timeToMatch = Calendar.getInstance()
+            var currentHour = timeToMatch[Calendar.HOUR_OF_DAY]
+
+            if(currentHour == 24 || currentHour == 12) {
+                finish()
+            } else {
+                completionHandler.invoke(db.getURL())
+            }
         } else {
             completionHandler.invoke(urlData)
         }

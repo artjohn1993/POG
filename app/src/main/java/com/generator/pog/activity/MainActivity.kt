@@ -14,6 +14,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.generator.pog.R
+import com.generator.pog.api.GoogleSheetApi
 import com.generator.pog.defaultSettings
 import com.generator.pog.dialog.AddUrlDialog
 import com.generator.pog.dialog.CloseDialog
@@ -22,8 +23,13 @@ import com.generator.pog.enum.WebOpenerDB
 import com.generator.pog.events.AddUrlEvent
 import com.generator.pog.events.IdleCheckerEvent
 import com.generator.pog.local_db.DatabaseHandler
+import com.generator.pog.model.GoogleSheet
 import com.generator.pog.model.URLData
+import com.generator.pog.presenter.GoogleSheetPresenterClass
+import com.generator.pog.presenter.GoogleSheetView
 import com.generator.pog.services.IdleChecker
+import com.google.android.material.snackbar.Snackbar
+import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.custom_action_bar.*
 import org.greenrobot.eventbus.EventBus
@@ -33,12 +39,19 @@ import org.jetbrains.anko.imageResource
 import org.jetbrains.anko.startActivity
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), GoogleSheetView {
     var db = DatabaseHandler(this)
     var urlData: MutableList<URLData.Details> = ArrayList()
     var total = 0
     var closeDialog = CloseDialog()
     lateinit var urlCheckerDialog: UrlCheckerDialog
+    var googleSheet : GoogleSheet.Result? = null
+
+    private var compositeDisposable: CompositeDisposable = CompositeDisposable()
+    private val apiServer by lazy {
+        GoogleSheetApi.create(this)
+    }
+    val presenter = GoogleSheetPresenterClass(this, apiServer)
 
     @SuppressLint("WrongConstant")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,7 +80,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        println("onPause")
+        compositeDisposable.clear()
     }
 
     override fun onResume() {
@@ -83,7 +96,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bind() {
-        checkDataBase()
         setClickEvent()
     }
 
@@ -97,9 +109,7 @@ class MainActivity : AppCompatActivity() {
 
         start.setOnClickListener {
             start.imageResource = R.drawable.pause
-            saveUrl()
-            saveFactor()
-            startActivity<WordpressLoaderActivity>()
+            checkDataBase()
         }
 
         shuffleBtn.setOnClickListener {
@@ -122,10 +132,6 @@ class MainActivity : AppCompatActivity() {
                 addURLEditText(item)
             }
         }
-
-        addBtn.setOnClickListener {
-            AddUrlDialog().show(this)
-        }
     }
 
     private fun saveFactor() {
@@ -135,8 +141,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveUrl() {
         db.deleteDatabase(WebOpenerDB.TABLE_URL.getValue())
+        urlData.shuffle()
         urlData.forEach { item ->
-            db.insertURL(item.url!!)
+            db.insertURL(item)
         }
     }
 
@@ -160,32 +167,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkDataBase() {
         checkURL()
-        checkFactor()
-    }
-
-    private fun checkFactor() {
-        var data = db.getFactor()
-        if (data == 0) {
-            factor.setText(defaultSettings?.factor)
-        } else {
-            factor.setText(data.toString())
-        }
     }
 
     private fun checkURL() {
-        var data = db.getURL()
-        if (data.isEmpty()) {
-            defaultSettings!!.url.forEach { item ->
-                addURLEditText(item)
-            }
-        } else {
-            data.forEach { item ->
-                addURLEditText(item)
-            }
-        }
+        presenter.getUrl("https://sheets.googleapis.com/v4/spreadsheets/${googleSheetID.text}/values/${googleSheetName.text}?dateTimeRenderOption=FORMATTED_STRING&majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE&key=AIzaSyAdETbAw9fqHW5wCv5Hnipoc1kvGmCEfoA")
     }
 
-    private fun addURLEditText(url: String?) {
+    private fun addURLEditText(url: String?,days: String = "", pages:String = "", pauseFrom:String ="", pauseTo:String = "" ) {
         addURL.text = "add URL (${++total})"
         var editText = EditText(this)
         var horizontalCon = LinearLayout(this)
@@ -199,7 +187,14 @@ class MainActivity : AppCompatActivity() {
         editText.id = View.generateViewId()
         editText.hint = "Enter URL"
         editText.setText(url)
-        var data = URLData.Details(url, editText.id.toString())
+        var data = URLData.Details(
+            url,
+            editText.id.toString(),
+            days,
+            pages,
+            pauseFrom,
+            pauseTo
+        )
         urlData.add(data)
         editText.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
@@ -247,7 +242,7 @@ class MainActivity : AppCompatActivity() {
         urlData.forEach { data ->
             index++
             if (id == data.id) {
-                var newData = URLData.Details(url, id)
+                var newData = URLData.Details(url, id,"","","","")
                 urlData[index] = newData
             }
         }
@@ -257,6 +252,23 @@ class MainActivity : AppCompatActivity() {
         closeDialog.showDialog(this)
     }
 
+    override fun responseGetUrl(data: GoogleSheet.Result) {
+       data.values.removeAt(0)
+
+       googleSheet = data
+       data.values.forEach { item ->
+           addURLEditText(item[0],item[1],item[2],item[3], item[4] )
+       }
+        saveUrl()
+        saveFactor()
+        stopService(Intent(this,IdleChecker::class.java))
+        startActivity<WordpressLoaderActivity>()
+    }
+
+    override fun responseGetUrlFailed(data: String) {
+
+    }
+
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onAddUrlEvent(event: AddUrlEvent) {
         addURLEditText(event.url)
@@ -264,11 +276,7 @@ class MainActivity : AppCompatActivity() {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onIdleCheckerEvent(event: IdleCheckerEvent) {
-        shuffleUrl()
-
         start.imageResource = R.drawable.pause
-        saveUrl()
-        saveFactor()
-        startActivity<WordpressLoaderActivity>()
+        checkDataBase()
     }
 }
