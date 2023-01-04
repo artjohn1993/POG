@@ -2,6 +2,7 @@ package com.generator.pog.activity
 
 import android.annotation.SuppressLint
 import android.icu.util.Calendar
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -11,6 +12,7 @@ import android.view.View
 import android.view.WindowManager
 import android.webkit.WebStorage
 import android.widget.LinearLayout
+import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.generator.pog.R
 import com.generator.pog.adapter.LoaderAdapter
@@ -245,6 +247,7 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun checkUrlData(completionHandler: (MutableList<URLData.Details>) -> Unit) {
         if (urlData.isEmpty()) {
             val timeToMatch = Calendar.getInstance()
