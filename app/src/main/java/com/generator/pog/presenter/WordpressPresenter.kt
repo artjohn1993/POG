@@ -18,6 +18,7 @@ class WordpressPresenterClass(var view: WordpressView, var api: ApiServices) : W
                 .subscribeOn(Schedulers.newThread())
                 .subscribe({ result ->
                     view.responseGetLatestPost(result)
+                    println(result)
                 }, { error ->
                     println(error.cause?.message.toString())
                     view.responseGetLatestPostFailed(error.cause?.message.toString())
