@@ -16,9 +16,7 @@ class WordpressData {
         } else {
             total = factor
         }
-        if (isSingle) {
-            total = factor
-        }
+
 
         var newFactoredWordpress: MutableList<Wordpress.Result> = ArrayList()
         data.shuffled().forEach { item ->

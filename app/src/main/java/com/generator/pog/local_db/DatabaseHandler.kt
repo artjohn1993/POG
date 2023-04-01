@@ -12,6 +12,7 @@ import com.generator.pog.enum.WebOpenerDB
 import com.generator.pog.model.RangeData
 import com.generator.pog.model.URLData
 import com.generator.pog.model.Wordpress
+import java.nio.channels.CompletionHandler
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -57,7 +58,7 @@ class DatabaseHandler(val context : Context) : SQLiteOpenHelper(context, WebOpen
     }
 
     fun insertRange(toLoad : String, ofPost: String) : Boolean {
-        deleteDatabase(WebOpenerDB.TABLE_RANGE.getValue())
+        deleteDatabase(WebOpenerDB.TABLE_RANGE.getValue(), {})
         val db = this.writableDatabase
         var range = ContentValues()
 
@@ -164,10 +165,11 @@ class DatabaseHandler(val context : Context) : SQLiteOpenHelper(context, WebOpen
         return data
     }
 
-    fun deleteDatabase(data : String) {
+    fun deleteDatabase(data : String, completionHandler: () -> Unit) {
         val db = this.writableDatabase
         db.delete(data,null,null)
         db.close()
+        completionHandler.invoke()
     }
 
 }

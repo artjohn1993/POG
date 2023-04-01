@@ -64,8 +64,8 @@ class MainActivity : AppCompatActivity(), GoogleSheetView {
             supportActionBar?.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM)
             supportActionBar?.setCustomView(R.layout.custom_action_bar)
             action_bar_title.setText("PAGEONE Generator")
-            action_bar_subtitle.setText("v.20230301.1")
-            //POG_20230301.1
+            action_bar_subtitle.setText("v.20230401.1")
+            //POG_20230401.1
         } catch (e: PackageManager.NameNotFoundException) {
             e.printStackTrace()
         }
@@ -135,16 +135,19 @@ class MainActivity : AppCompatActivity(), GoogleSheetView {
     }
 
     private fun saveFactor() {
-        db.deleteDatabase(WebOpenerDB.TABLE_FACTOR.getValue())
-        db.insertFactor(factor.text.toString())
+        db.deleteDatabase(WebOpenerDB.TABLE_FACTOR.getValue(), {
+            db.insertFactor(factor.text.toString())
+        })
     }
 
     private fun saveUrl() {
-        db.deleteDatabase(WebOpenerDB.TABLE_URL.getValue())
-        urlData.shuffle()
-        urlData.forEach { item ->
-            db.insertURL(item)
-        }
+        db.deleteDatabase(WebOpenerDB.TABLE_URL.getValue(),{
+            urlData.shuffle()
+            urlData.forEach { item ->
+                db.insertURL(item)
+            }
+        })
+
     }
 
     private fun shuffleUrl() {
