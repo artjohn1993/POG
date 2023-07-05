@@ -1,7 +1,7 @@
 /**
  * Automatically generated file. DO NOT MODIFY
  */
-package com.generator.pog;
+package com.generator.pogscroller;
 
 public final class BuildConfig {
   public static final boolean DEBUG = Boolean.parseBoolean("true");
