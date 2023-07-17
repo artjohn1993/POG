@@ -53,7 +53,7 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
         WordpressApi.create(this)
     }
     val presenter = WordpressPresenterClass(this, apiServer)
-    val timer = object : CountDownTimer(7 * 1000, 1000) {
+    val timer = object : CountDownTimer(5 * 1000, 1000) {
         override fun onTick(millisUntilFinished: Long) {}
 
         @RequiresApi(Build.VERSION_CODES.N)

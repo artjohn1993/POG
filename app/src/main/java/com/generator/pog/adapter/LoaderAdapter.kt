@@ -51,6 +51,7 @@ class LoaderAdapter(var activity: Activity, var data: MutableList<Wordpress.Resu
             domStorageEnabled = false
             safeBrowsingEnabled = false
             setSupportMultipleWindows(true)
+            loadsImagesAutomatically = false
         }
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 //            // chromium, enable hardware acceleration
@@ -83,6 +84,7 @@ class LoaderAdapter(var activity: Activity, var data: MutableList<Wordpress.Resu
         override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
             super.onPageStarted(view, url, favicon)
             if (url != "about:blank") {
+
                 EventBus.getDefault().post(TimerEvent())
             }
         }
