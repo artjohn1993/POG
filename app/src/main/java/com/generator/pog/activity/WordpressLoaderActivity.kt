@@ -53,7 +53,7 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
         WordpressApi.create(this)
     }
     val presenter = WordpressPresenterClass(this, apiServer)
-    val timer = object : CountDownTimer(7 * 1000, 1000) {
+    val timer = object : CountDownTimer(5 * 1000, 1000) {
         override fun onTick(millisUntilFinished: Long) {}
 
         @RequiresApi(Build.VERSION_CODES.N)
@@ -155,16 +155,42 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
         if (page != 1) {
             prepareToDisplay()
         } else {
-            downloadingCon.visibility = View.GONE
-            setAppTitle()
-            val message = "failed to download ${urlData[0].url}"
-            Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT).show()
+            if(checkUrl(urlData[0].url!!)) {
+                //if the url is specific url then use it to display
+                var data : MutableList<Wordpress.Result> = ArrayList()
 
-            Handler().postDelayed({
-                urlData.removeAt(0)
-                downloadWordpress()
-            }, 5000)
+                for(i in 1..urlData[0].pages.toInt()) {
+                    var result = Wordpress.Result(
+                        null,
+                        urlData[0].url!!,
+                        "",
+                        Wordpress.Title(
+                            urlData[0].url!!
+                        )
+                    )
+                    data.add(result)
+                }
+
+                wordpressData.addWordpressData(wordpressRawResponse, data, { data ->
+                    wordpressRawResponse = data
+                    prepareToDisplay()
+                })
+            } else {
+                downloadingCon.visibility = View.GONE
+                setAppTitle()
+                val message = "failed to download ${urlData[0].url}"
+                Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT).show()
+
+                Handler().postDelayed({
+                    urlData.removeAt(0)
+                    downloadWordpress()
+                }, 5000)
+            }
         }
+    }
+
+    fun checkUrl(url: String):Boolean {
+        return url.contains("/")
     }
 
     private fun setAppTitle() {
