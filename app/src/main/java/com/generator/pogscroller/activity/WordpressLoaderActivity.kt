@@ -20,6 +20,7 @@ import com.generator.pogscroller.api.WordpressApi
 import com.generator.pogscroller.data.CalendarData
 import com.generator.pogscroller.data.WordpressData
 import com.generator.pogscroller.enum.DownloadStatus
+import com.generator.pogscroller.enum.TimerType
 import com.generator.pogscroller.events.TimerEvent
 import com.generator.pogscroller.events.UrlLoadedEvent
 import com.generator.pogscroller.local_db.DatabaseHandler
@@ -53,16 +54,21 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
         WordpressApi.create(this)
     }
     val presenter = WordpressPresenterClass(this, apiServer)
-    val timer = object : CountDownTimer(2 * 1000, 1000) {
+    val timerOnFinish = object : CountDownTimer(2 * 1000, 1000) {
         override fun onTick(millisUntilFinished: Long) {}
 
         @RequiresApi(Build.VERSION_CODES.N)
         override fun onFinish() {
-            WebStorage.getInstance().deleteAllData()
-            android.webkit.CookieManager.getInstance().removeAllCookies(null)
-            android.webkit.CookieManager.getInstance().flush()
-            removeRecyclerView()
-            displayWordpress()
+            processNextPage()
+        }
+    }
+
+    val timerOnstart = object : CountDownTimer(10 * 1000, 1000) {
+        override fun onTick(millisUntilFinished: Long) {}
+
+        @RequiresApi(Build.VERSION_CODES.N)
+        override fun onFinish() {
+            processNextPage()
         }
     }
 
@@ -177,6 +183,14 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun processNextPage() {
+        WebStorage.getInstance().deleteAllData()
+        android.webkit.CookieManager.getInstance().removeAllCookies(null)
+        android.webkit.CookieManager.getInstance().flush()
+        removeRecyclerView()
+        displayWordpress()
+    }
     private fun resetWordpress() {
         totalWordpress = 0
         loadedWordpress = 0
@@ -284,7 +298,8 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
     @RequiresApi(Build.VERSION_CODES.N)
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onUrlLoadedEvent(event: UrlLoadedEvent) {
-        timer.cancel()
+        timerOnFinish.cancel()
+        timerOnstart.cancel()
         WebStorage.getInstance().deleteAllData()
         android.webkit.CookieManager.getInstance().removeAllCookies(null)
         android.webkit.CookieManager.getInstance().flush()
@@ -294,6 +309,11 @@ class WordpressLoaderActivity : AppCompatActivity(), WordpressView {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onTimerEvent(event: TimerEvent) {
-        timer.start()
+        if(event.timerType === TimerType.ONFINISH) {
+            timerOnstart.cancel()
+            timerOnFinish.start()
+        } else {
+            timerOnstart.start()
+        }
     }
 }

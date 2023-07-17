@@ -62,8 +62,8 @@ class MainActivity : AppCompatActivity(), GoogleSheetView {
             supportActionBar?.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM)
             supportActionBar?.setCustomView(R.layout.custom_action_bar)
             action_bar_title.setText("PAGEONE Scroller")
-            action_bar_subtitle.setText("v.20230705.1")
-            //POG_Scroller_20230705.1
+            action_bar_subtitle.setText("v.20230708.2")
+            //POG_Scroller_20230708.2
         } catch (e: PackageManager.NameNotFoundException) {
             e.printStackTrace()
         }

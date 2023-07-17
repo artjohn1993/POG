@@ -12,6 +12,7 @@ import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.RecyclerView
 import com.generator.pogscroller.R
+import com.generator.pogscroller.enum.TimerType
 import com.generator.pogscroller.events.TimerEvent
 import com.generator.pogscroller.events.UrlLoadedEvent
 import com.generator.pogscroller.model.Wordpress
@@ -47,6 +48,7 @@ class LoaderAdapter(var activity: Activity, var data: MutableList<Wordpress.Resu
             domStorageEnabled = false
             safeBrowsingEnabled = false
             setSupportMultipleWindows(true)
+            loadsImagesAutomatically = false
         }
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 //            // chromium, enable hardware acceleration
@@ -79,22 +81,18 @@ class LoaderAdapter(var activity: Activity, var data: MutableList<Wordpress.Resu
         override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
             super.onPageStarted(view, url, favicon)
             if (url != "about:blank") {
-//                EventBus.getDefault().post(TimerEvent())
+                EventBus.getDefault().post(TimerEvent(TimerType.ONSTART))
             }
         }
 
         override fun onPageFinished(view: WebView?, url: String?) {
             super.onPageFinished(view, url)
             println("onPageFinished")
-            view!!.clearCache(true)
-            view.clearHistory()
-            view.clearMatches()
-            view.clearSslPreferences()
             if (url == "about:blank") {
                 EventBus.getDefault().post(UrlLoadedEvent())
             } else {
                 conView?.pageDown(true)
-                EventBus.getDefault().post(TimerEvent())
+                EventBus.getDefault().post(TimerEvent(TimerType.ONFINISH))
             }
         }
 
