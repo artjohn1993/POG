@@ -64,8 +64,8 @@ class MainActivity : AppCompatActivity(), GoogleSheetView {
             supportActionBar?.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM)
             supportActionBar?.setCustomView(R.layout.custom_action_bar)
             action_bar_title.setText("PAGEONE Generator")
-            action_bar_subtitle.setText("v.20230717.2")
-                //POG_20230717.2
+            action_bar_subtitle.setText("v.20230718.1")
+                //POG_20230718.1
         } catch (e: PackageManager.NameNotFoundException) {
             e.printStackTrace()
         }
